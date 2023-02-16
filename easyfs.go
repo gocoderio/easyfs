@@ -17,13 +17,6 @@ func NewFS() EasyFS {
 	return EasyFS{fstest.MapFS{}}
 }
 
-func (m EasyFS) AddZip(name string, content []byte) error {
-	m.MapFS[name] = &fstest.MapFile{
-		Data: content,
-	}
-	return nil
-}
-
 func (m EasyFS) Mkdir(name string) error {
 	m.MapFS[name] = &fstest.MapFile{
 		Mode: os.ModeDir,
