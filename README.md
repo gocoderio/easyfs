@@ -1,2 +1,2 @@
 # easyfs
-Provides a memory based read/write filesystem that works anywhere.
+Provides a memory based read/write filesystem in pure Go that works anywhere.
