@@ -4,8 +4,6 @@ import (
 	"testing"
 )
 
-var easyFS EasyFS
-
 func TestAddFile(t *testing.T) {
 	// Add a file to the filesystem
 	FS := NewFS()

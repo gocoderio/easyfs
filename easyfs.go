@@ -7,6 +7,8 @@ import (
 	"testing/fstest"
 )
 
+var easyFS EasyFS
+
 type FileMode = fs.FileMode
 
 type EasyFS struct {
