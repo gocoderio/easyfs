@@ -3,6 +3,7 @@ package easyfs
 import (
 	"io/fs"
 	"os"
+	"reflect"
 	"testing/fstest"
 )
 
@@ -15,6 +16,19 @@ type EasyFS struct {
 // returns a fresh new filesystem
 func NewFS() EasyFS {
 	return EasyFS{fstest.MapFS{}}
+}
+
+// returns an existing filesystem if there is one
+func GetFS() EasyFS {
+	if checkGlobalVar() {
+		return easyFS //if there is a global var, return the existing filesystem
+	}
+	return EasyFS{fstest.MapFS{}} // if not return a new one
+}
+func checkGlobalVar() bool {
+	var zeroVal string
+	v := reflect.ValueOf(&easyFS).Elem().Interface()
+	return v != zeroVal
 }
 
 func (m EasyFS) Mkdir(name string) error {

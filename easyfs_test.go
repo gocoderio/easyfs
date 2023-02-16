@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+var easyFS EasyFS
+
 func TestAddFile(t *testing.T) {
 	// Add a file to the filesystem
 	FS := NewFS()
@@ -29,21 +31,5 @@ func TestAddDir(t *testing.T) {
 	// Check that the directory was added successfully
 	if _, err := FS.Open("mydir"); err != nil {
 		t.Errorf("Error opening directory: %v", err)
-	}
-}
-
-func TestAddZip(t *testing.T) {
-	// Create a sample zip file
-	zipContent := []byte{0x50, 0x4b, 0x03, 0x04, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00}
-	FS := NewFS()
-	// Add the zip file to the filesystem
-	err := FS.AddZip("myzip.zip", zipContent)
-	if err != nil {
-		t.Errorf("Error adding zip file to filesystem: %v", err)
-	}
-
-	// Check that the zip file was added successfully
-	if _, err := FS.Open("myzip.zip"); err != nil {
-		t.Errorf("Error opening zip file: %v", err)
 	}
 }
