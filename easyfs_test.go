@@ -7,7 +7,7 @@ import (
 func TestAddFile(t *testing.T) {
 	// Add a file to the filesystem
 	FS := NewFS()
-	err := FS.AddFile("hello.txt", "Hello, world!")
+	err := FS.WriteFile("hello.txt", []byte("Hello, world!"), 0777)
 	if err != nil {
 		t.Errorf("Error adding file to filesystem: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestAddFile(t *testing.T) {
 func TestAddDir(t *testing.T) {
 	// Add a directory to the filesystem
 	FS := NewFS()
-	err := FS.AddDir("mydir")
+	err := FS.Mkdir("mydir")
 	if err != nil {
 		t.Errorf("Error adding directory to filesystem: %v", err)
 	}
