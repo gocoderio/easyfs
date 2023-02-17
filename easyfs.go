@@ -23,6 +23,7 @@ func NewFS() EasyFS {
 // returns an existing filesystem if there is one
 func GetFS() EasyFS {
 	if checkGlobalVar() {
+		println("error in GetFS- variable not found")
 		return easyFS //if there is a global var, return the existing filesystem
 	}
 	return EasyFS{fstest.MapFS{}} // if not return a new one
