@@ -30,7 +30,8 @@ func checkGlobalVar() bool {
 	return v != zeroVal
 }
 
-func (m EasyFS) Mkdir(name string) error {
+// perm is unused, but you need to pass in something, like 0777
+func (m EasyFS) Mkdir(name string, perm fs.FileMode) error {
 	m.MapFS[name] = &MapFile{
 		Mode: fs.ModeDir,
 		//Mode: ModeDir,
