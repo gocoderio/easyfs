@@ -2,22 +2,18 @@ package easyfs
 
 import (
 	"io/fs"
-	"os"
 	"reflect"
-	"testing/fstest"
 )
 
 var EFS EasyFS //deprecated as public- use GetFS() instead
 
-type FileMode = fs.FileMode
-
 type EasyFS struct {
-	fstest.MapFS
+	MapFS
 }
 
 // returns a fresh new filesystem
 func NewFS() EasyFS {
-	return EasyFS{fstest.MapFS{}}
+	return EasyFS{MapFS{}}
 }
 
 // returns an existing filesystem if there is one
@@ -26,7 +22,7 @@ func GetFS() EasyFS {
 		println("error in GetFS- variable not found")
 		return EFS //if there is a global var, return the existing filesystem
 	}
-	return EasyFS{fstest.MapFS{}} // if not return a new one
+	return EasyFS{MapFS{}} // if not return a new one
 }
 func checkGlobalVar() bool {
 	var zeroVal string
@@ -35,19 +31,20 @@ func checkGlobalVar() bool {
 }
 
 func (m EasyFS) Mkdir(name string) error {
-	m.MapFS[name] = &fstest.MapFile{
-		Mode: os.ModeDir,
+	m.MapFS[name] = &MapFile{
+		Mode: fs.ModeDir,
+		//Mode: ModeDir,
 	}
 	return nil
 }
 
 // WriteFile writes data to a file named by filename. perm is not used but cn be set to
-func (m EasyFS) WriteFile(name string, data []byte, perm FileMode) error {
+func (m EasyFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
 	//perm is not implimented
 	if name[0] == '/' {
 		name = name[1:] // FS filesystem in go cannot start with /
 	}
-	m.MapFS[name] = &fstest.MapFile{
+	m.MapFS[name] = &MapFile{
 		Data: data,
 	}
 	return nil
