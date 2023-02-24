@@ -13,6 +13,13 @@ import (
 	"time"
 )
 
+// To use: first create an empty in-memory file system
+// fs := easyfs.MapFS{}
+// Then add files to it:
+// fs["foo/test.txt"] = &easyfs.MapFile{Data: []byte("hello")}
+// or
+// fs.WriteFile("foo/test.txt", []byte("hello"), 0777) //preferred
+
 // A MapFS is a simple in-memory file system for use in tests,
 // represented as a map from path names (arguments to Open)
 // to information about the files or directories they represent.
@@ -237,4 +244,30 @@ func (d *mapDir) ReadDir(count int) ([]fs.DirEntry, error) {
 	}
 	d.offset += n
 	return list, nil
+}
+
+///////////////////////////////////////////////////////////////
+// new MapFS functions here
+///////////////////////////////////////////////////////////////
+
+// perm is unused, but you need to pass in something, like 0777
+func (fsys MapFS) Mkdir(name string, perm fs.FileMode) error {
+	fsys[name] = &MapFile{
+		Mode: fs.ModeDir,
+	}
+	return nil
+}
+
+// WriteFile writes data to a file named by filename. perm is not used but cn be set to
+func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
+	//perm is not implimented
+	if name[0] == '/' {
+		name = name[1:] // FS filesystem in go cannot start with /
+	}
+	fsys[name] = &MapFile{
+		Data:    data,
+		Mode:    perm,
+		ModTime: time.Now(),
+	}
+	return nil
 }
