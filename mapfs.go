@@ -301,7 +301,8 @@ func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
 
 // Create a new file with the specified name and permission bits (before umask).
 // If there is an error, it will be of type *PathError.
-func (fsys MapFS) Create(name string) (openMapFile, error) {
+// func (fsys MapFS) Create(name string) (openMapFile, error) {
+func (fsys MapFS) Create(name string) (fs.File, error) {
 	//perm is not implimented
 	if name[0] == '/' {
 		name = name[1:] // FS filesystem in go cannot start with /
@@ -311,16 +312,50 @@ func (fsys MapFS) Create(name string) (openMapFile, error) {
 		Mode:    0666,
 		ModTime: time.Now(),
 	}
-	//	return fsys.Open(name)
-	//	return fsys.Open(name)
-	//openMapFile.mapFileInfo = mapFileInfo{
-	mfi := mapFileInfo{
-		name: name,
-		f:    fsys[name],
-	}
+	//mfi := mapFileInfo{
+	////		name: name,
+	//	f:    fsys[name],
+	//}
 	//return openMapFile{path: name}, nil
 
-	return openMapFile{path: name, mapFileInfo: mfi}, nil
+	//	return openMapFile{path: name, mapFileInfo: mfi}, nil
+	return fsys.Open(name)
+}
+
+// Remove removes the named file or (empty) directory.
+// If there is an error, it will be of type *PathError.
+func (fsys MapFS) Remove(name string) error {
+	if name[0] == '/' {
+		name = name[1:] // FS filesystem in go cannot start with /
+	}
+	delete(fsys, name)
+	return nil
+}
+
+// Rename renames (moves) oldpath to newpath.
+// If newpath already exists and is not a directory, Rename replaces it.
+// OS-specific restrictions may apply when oldpath and newpath are in different directories.
+// If there is an error, it will be of type *LinkError.
+func (fsys MapFS) Rename(oldname, newname string) error {
+	if oldname[0] == '/' {
+		oldname = oldname[1:] // FS filesystem in go cannot start with /
+	}
+	if newname[0] == '/' {
+		newname = newname[1:] // FS filesystem in go cannot start with /
+	}
+	fsys[newname] = fsys[oldname]
+	delete(fsys, oldname)
+	return nil
+}
+
+// Copy copies the file in src to dst.
+func (fsys MapFS) Copy(dst, src string) error {
+	srcFile := fsys[src]
+	if srcFile == nil {
+		return &fs.PathError{Op: "copy", Path: src, Err: fs.ErrNotExist}
+	}
+	fsys[dst] = srcFile
+	return nil
 }
 
 /*
