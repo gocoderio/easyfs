@@ -48,7 +48,7 @@ type MapFile struct {
 }
 
 var _ fs.FS = MapFS(nil)
-var _ fs.File = (*openMapFile)(nil)
+var _ fs.File = (*OpenMapFile)(nil)
 
 // Open opens the named file.
 func (fsys MapFS) Open(name string) (fs.File, error) {
@@ -58,7 +58,7 @@ func (fsys MapFS) Open(name string) (fs.File, error) {
 	file := fsys[name]
 	if file != nil && file.Mode&fs.ModeDir == 0 {
 		// Ordinary file
-		return &openMapFile{name, mapFileInfo{path.Base(name), file}, 0}, nil
+		return &OpenMapFile{name, mapFileInfo{path.Base(name), file}, 0}, nil
 	}
 
 	// Directory, possibly synthesized.
@@ -166,18 +166,18 @@ func (i *mapFileInfo) IsDir() bool                { return i.f.Mode&fs.ModeDir !
 func (i *mapFileInfo) Sys() any                   { return i.f.Sys }
 func (i *mapFileInfo) Info() (fs.FileInfo, error) { return i, nil }
 
-// An openMapFile is a regular (non-directory) fs.File open for reading.
-type openMapFile struct {
+// An OpenMapFile is a regular (non-directory) fs.File open for reading.
+type OpenMapFile struct {
 	path string
 	mapFileInfo
 	offset int64
 }
 
-func (f *openMapFile) Stat() (fs.FileInfo, error) { return &f.mapFileInfo, nil }
+func (f *OpenMapFile) Stat() (fs.FileInfo, error) { return &f.mapFileInfo, nil }
 
-func (f *openMapFile) Close() error { return nil }
+func (f *OpenMapFile) Close() error { return nil }
 
-func (f *openMapFile) Read(b []byte) (int, error) {
+func (f *OpenMapFile) Read(b []byte) (int, error) {
 	if f.offset >= int64(len(f.f.Data)) {
 		return 0, io.EOF
 	}
@@ -195,11 +195,11 @@ type testFile struct {
 }
 
 // func (f *MapFile) Write(b []byte) (int, error) {
-// func (f *openMapFile) Write(b []byte) (int, error) {
+// func (f *OpenMapFile) Write(b []byte) (int, error) {
 func (f *testFile) Write(b []byte) (int, error) {
-	//of :=f(*openMapFile)
+	//of :=f(*OpenMapFile)
 
-	if file, ok := f.file.(*openMapFile); ok {
+	if file, ok := f.file.(*OpenMapFile); ok {
 		n := copy(file.f.Data, b)
 		if n < len(b) {
 			file.f.Data = append(file.f.Data, b[n:]...)
@@ -218,13 +218,13 @@ func (f *testFile) Write(b []byte) (int, error) {
 		return n, nil
 	*/
 }
-func (f *openMapFile) MapFile() *MapFile {
+func (f *OpenMapFile) MapFile() *MapFile {
 	return f.mapFileInfo.f
 }
-func (f *openMapFile) Name() string {
+func (f *OpenMapFile) Name() string {
 	return f.mapFileInfo.name
 }
-func (f *openMapFile) Seek(offset int64, whence int) (int64, error) {
+func (f *OpenMapFile) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case 0:
 		// offset += 0
@@ -240,7 +240,7 @@ func (f *openMapFile) Seek(offset int64, whence int) (int64, error) {
 	return offset, nil
 }
 
-func (f *openMapFile) ReadAt(b []byte, offset int64) (int, error) {
+func (f *OpenMapFile) ReadAt(b []byte, offset int64) (int, error) {
 	if offset < 0 || offset > int64(len(f.f.Data)) {
 		return 0, &fs.PathError{Op: "read", Path: f.path, Err: fs.ErrInvalid}
 	}
@@ -295,7 +295,7 @@ func (fsys MapFS) Mkdir(name string, perm fs.FileMode) error {
 
 // Create a new file with the specified name and permission bits (before umask).
 // If there is an error, it will be of type *PathError.
-// func (fsys MapFS) Create(name string) (openMapFile, error) {
+// func (fsys MapFS) Create(name string) (OpenMapFile, error) {
 func (fsys MapFS) Create(name string) (fs.File, error) {
 	//perm is not implimented
 	if name[0] == '/' {
@@ -310,9 +310,9 @@ func (fsys MapFS) Create(name string) (fs.File, error) {
 		name: name,
 		f:    fsys[name],
 	}
-	//return openMapFile{path: name}, nil
+	//return OpenMapFile{path: name}, nil
 
-	return &openMapFile{path: name, mapFileInfo: mfi}, nil
+	return &OpenMapFile{path: name, mapFileInfo: mfi}, nil
 	//return fsys.Open(name)
 }
 
