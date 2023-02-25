@@ -5,6 +5,7 @@
 package easyfs
 
 import (
+	"fmt"
 	"io"
 	"io/fs"
 	"path"
@@ -178,6 +179,8 @@ func (f *openMapFile) Stat() (fs.FileInfo, error) { return &f.mapFileInfo, nil }
 func (f *openMapFile) Close() error { return nil }
 
 func (f *openMapFile) Read(b []byte) (int, error) {
+	fmt.Printf("Read %d bytes from %s\n", len(b), f.path)
+	fmt.Printf("buffer size: %d %d\n", len(b), cap(b))
 	if f.offset >= int64(len(f.f.Data)) {
 		return 0, io.EOF
 	}
@@ -185,6 +188,7 @@ func (f *openMapFile) Read(b []byte) (int, error) {
 		return 0, &fs.PathError{Op: "read", Path: f.path, Err: fs.ErrInvalid}
 	}
 	n := copy(b, f.f.Data[f.offset:])
+	fmt.Printf("after copy n=%d\n", n)
 	f.offset += int64(n)
 	return n, nil
 }
@@ -206,7 +210,12 @@ func (f *MapFile) Write(b []byte) (int, error) {
 		return n, nil
 	*/
 }
-
+func (f *openMapFile) MapFile() *MapFile {
+	return f.mapFileInfo.f
+}
+func (f *openMapFile) Name() string {
+	return f.mapFileInfo.name
+}
 func (f *openMapFile) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case 0:
@@ -288,4 +297,19 @@ func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
 		ModTime: time.Now(),
 	}
 	return nil
+}
+
+// Create a new file with the specified name and permission bits (before umask).
+// If there is an error, it will be of type *PathError.
+func (fsys MapFS) Create(name string) (fs.File, error) {
+	//perm is not implimented
+	if name[0] == '/' {
+		name = name[1:] // FS filesystem in go cannot start with /
+	}
+	fsys[name] = &MapFile{
+		Data:    []byte{},
+		Mode:    0666,
+		ModTime: time.Now(),
+	}
+	return fsys.Open(name)
 }
