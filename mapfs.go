@@ -184,14 +184,18 @@ func (f *openMapFile) Read(b []byte) (int, error) {
 	if f.offset < 0 {
 		return 0, &fs.PathError{Op: "read", Path: f.path, Err: fs.ErrInvalid}
 	}
+
 	n := copy(b, f.f.Data[f.offset:])
 	f.offset += int64(n)
 	return n, nil
 }
-func (f *MapFile) Write(b []byte) (int, error) {
-	n := copy(f.Data, b)
+
+// func (f *MapFile) Write(b []byte) (int, error) {
+func (f *openMapFile) Write(b []byte) (int, error) {
+	//of :=f(*openMapFile)
+	n := copy(f.f.Data, b)
 	if n < len(b) {
-		f.Data = append(f.Data, b[n:]...)
+		f.f.Data = append(f.f.Data, b[n:]...)
 	}
 	return len(b), nil
 	/*
@@ -281,20 +285,6 @@ func (fsys MapFS) Mkdir(name string, perm fs.FileMode) error {
 	return nil
 }
 
-// WriteFile writes data to a file named by filename. perm is not used but cn be set to
-func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
-	//perm is not implimented
-	if name[0] == '/' {
-		name = name[1:] // FS filesystem in go cannot start with /
-	}
-	fsys[name] = &MapFile{
-		Data:    data,
-		Mode:    perm,
-		ModTime: time.Now(),
-	}
-	return nil
-}
-
 // Create a new file with the specified name and permission bits (before umask).
 // If there is an error, it will be of type *PathError.
 // func (fsys MapFS) Create(name string) (openMapFile, error) {
@@ -308,14 +298,28 @@ func (fsys MapFS) Create(name string) (fs.File, error) {
 		Mode:    0666,
 		ModTime: time.Now(),
 	}
-	//mfi := mapFileInfo{
-	////		name: name,
-	//	f:    fsys[name],
-	//}
+	mfi := mapFileInfo{
+		name: name,
+		f:    fsys[name],
+	}
 	//return openMapFile{path: name}, nil
 
-	//	return openMapFile{path: name, mapFileInfo: mfi}, nil
-	return fsys.Open(name)
+	return &openMapFile{path: name, mapFileInfo: mfi}, nil
+	//return fsys.Open(name)
+}
+
+// WriteFile writes data to a file named by filename. perm is not used but cn be set to
+func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
+	//perm is not implimented
+	if name[0] == '/' {
+		name = name[1:] // FS filesystem in go cannot start with /
+	}
+	fsys[name] = &MapFile{
+		Data:    data,
+		Mode:    perm,
+		ModTime: time.Now(),
+	}
+	return nil
 }
 
 // Remove removes the named file or (empty) directory.
