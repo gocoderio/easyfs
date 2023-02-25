@@ -5,7 +5,6 @@
 package easyfs
 
 import (
-	"fmt"
 	"io"
 	"io/fs"
 	"path"
@@ -179,8 +178,6 @@ func (f *openMapFile) Stat() (fs.FileInfo, error) { return &f.mapFileInfo, nil }
 func (f *openMapFile) Close() error { return nil }
 
 func (f *openMapFile) Read(b []byte) (int, error) {
-	fmt.Printf("Read %d bytes from %s\n", len(b), f.path)
-	fmt.Printf("buffer size: %d %d\n", len(b), cap(b))
 	if f.offset >= int64(len(f.f.Data)) {
 		return 0, io.EOF
 	}
@@ -188,7 +185,6 @@ func (f *openMapFile) Read(b []byte) (int, error) {
 		return 0, &fs.PathError{Op: "read", Path: f.path, Err: fs.ErrInvalid}
 	}
 	n := copy(b, f.f.Data[f.offset:])
-	fmt.Printf("after copy n=%d\n", n)
 	f.offset += int64(n)
 	return n, nil
 }
@@ -357,15 +353,3 @@ func (fsys MapFS) Copy(dst, src string) error {
 	fsys[dst] = srcFile
 	return nil
 }
-
-/*
-func init() {
-	efs := MapFS{}
-	ff, err := efs.Create("home/go-checksum/testing.txt")
-
-	if err != nil {
-		fmt.Println("errrrrr=", err)
-	}
-	fmt.Printf("ff=%T\n", ff)
-}
-*/
