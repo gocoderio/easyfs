@@ -301,7 +301,7 @@ func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
 
 // Create a new file with the specified name and permission bits (before umask).
 // If there is an error, it will be of type *PathError.
-func (fsys MapFS) Create(name string) (fs.File, error) {
+func (fsys MapFS) Create(name string) (openMapFile, error) {
 	//perm is not implimented
 	if name[0] == '/' {
 		name = name[1:] // FS filesystem in go cannot start with /
@@ -311,5 +311,26 @@ func (fsys MapFS) Create(name string) (fs.File, error) {
 		Mode:    0666,
 		ModTime: time.Now(),
 	}
-	return fsys.Open(name)
+	//	return fsys.Open(name)
+	//	return fsys.Open(name)
+	//openMapFile.mapFileInfo = mapFileInfo{
+	mfi := mapFileInfo{
+		name: name,
+		f:    fsys[name],
+	}
+	//return openMapFile{path: name}, nil
+
+	return openMapFile{path: name, mapFileInfo: mfi}, nil
 }
+
+/*
+func init() {
+	efs := MapFS{}
+	ff, err := efs.Create("home/go-checksum/testing.txt")
+
+	if err != nil {
+		fmt.Println("errrrrr=", err)
+	}
+	fmt.Printf("ff=%T\n", ff)
+}
+*/
