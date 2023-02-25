@@ -190,15 +190,15 @@ func (f *OpenMapFile) Read(b []byte) (int, error) {
 	return n, nil
 }
 
-type testFile struct {
+type TFile struct {
 	file fs.File
 }
 
 // func (f *MapFile) Write(b []byte) (int, error) {
 // func (f *OpenMapFile) Write(b []byte) (int, error) {
-func (f *testFile) Write(b []byte) (int, error) {
+func (f TFile) Write(b []byte) (int, error) {
 	//of :=f(*OpenMapFile)
-
+	//f.file.
 	if file, ok := f.file.(*OpenMapFile); ok {
 		n := copy(file.f.Data, b)
 		if n < len(b) {
