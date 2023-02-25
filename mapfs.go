@@ -188,16 +188,23 @@ func (f *openMapFile) Read(b []byte) (int, error) {
 	f.offset += int64(n)
 	return n, nil
 }
-func (f *openMapFile) Write(b []byte) (int, error) {
-	if f.offset >= int64(len(f.f.Data)) {
-		return 0, io.EOF //fs.ErrPerm
+func (f *MapFile) Write(b []byte) (int, error) {
+	n := copy(f.Data, b)
+	if n < len(b) {
+		f.Data = append(f.Data, b[n:]...)
 	}
-	if f.offset < 0 {
-		return 0, &fs.PathError{Op: "write", Path: f.path, Err: fs.ErrInvalid}
-	}
-	n := copy(f.f.Data[f.offset:], b)
-	f.offset += int64(n)
-	return n, nil
+	return len(b), nil
+	/*
+			if f.offset >= int64(len(f.f.Data)) {
+				return 0, io.EOF //fs.ErrPerm
+			}
+			if f.offset < 0 {
+				return 0, &fs.PathError{Op: "write", Path: f.path, Err: fs.ErrInvalid}
+			}
+			n := copy(f.f.Data[f.offset:], b)
+			f.offset += int64(n)
+		return n, nil
+	*/
 }
 
 func (f *openMapFile) Seek(offset int64, whence int) (int64, error) {
