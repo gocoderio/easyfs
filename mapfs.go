@@ -190,21 +190,26 @@ func (f *OpenMapFile) Read(b []byte) (int, error) {
 	return n, nil
 }
 
-type TFile struct {
-	file fs.File
-}
+//type TFile struct {
+//	file fs.File
+//}
+
+//func (f TFile) Close() error {
+//	return f.file.Close()
+//}
 
 // func (f *MapFile) Write(b []byte) (int, error) {
 // func (f *OpenMapFile) Write(b []byte) (int, error) {
-func (f TFile) Write(b []byte) (int, error) {
+func (f OpenMapFile) Write(b []byte) (int, error) {
 	//of :=f(*OpenMapFile)
 	//f.file.
-	if file, ok := f.file.(*OpenMapFile); ok {
-		n := copy(file.f.Data, b)
-		if n < len(b) {
-			file.f.Data = append(file.f.Data, b[n:]...)
-		}
+
+	//if file, ok := f.file.(*OpenMapFile); ok {
+	n := copy(f.f.Data, b)
+	if n < len(b) {
+		f.f.Data = append(f.f.Data, b[n:]...)
 	}
+	//}
 	return len(b), nil
 	/*
 			if f.offset >= int64(len(f.f.Data)) {
@@ -296,7 +301,7 @@ func (fsys MapFS) Mkdir(name string, perm fs.FileMode) error {
 // Create a new file with the specified name and permission bits (before umask).
 // If there is an error, it will be of type *PathError.
 // func (fsys MapFS) Create(name string) (OpenMapFile, error) {
-func (fsys MapFS) Create(name string) (fs.File, error) {
+func (fsys MapFS) Create(name string) (OpenMapFile, error) {
 	//perm is not implimented
 	if name[0] == '/' {
 		name = name[1:] // FS filesystem in go cannot start with /
@@ -312,7 +317,7 @@ func (fsys MapFS) Create(name string) (fs.File, error) {
 	}
 	//return OpenMapFile{path: name}, nil
 
-	return &OpenMapFile{path: name, mapFileInfo: mfi}, nil
+	return OpenMapFile{path: name, mapFileInfo: mfi}, nil
 	//return fsys.Open(name)
 }
 
