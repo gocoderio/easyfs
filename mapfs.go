@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"path"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -39,6 +40,27 @@ import (
 // than a few hundred entries or directory reads.
 type MapFS map[string]*MapFile
 
+// A mapDir is a directory fs.File (so also an fs.ReadDirFile) open for reading.
+type mapDir struct {
+	path string
+	mapFileInfo
+	entry  []mapFileInfo
+	offset int
+}
+
+// An OpenMapFile is a regular (non-directory) fs.File open for reading (and now writing).
+type OpenMapFile struct {
+	path string
+	mapFileInfo
+	offset int64
+}
+
+// A mapFileInfo implements fs.FileInfo and fs.DirEntry for a given map file.
+type mapFileInfo struct {
+	name string
+	f    *MapFile
+}
+
 // A MapFile describes a single file in a MapFS.
 type MapFile struct {
 	Data    []byte      // file content
@@ -50,6 +72,14 @@ type MapFile struct {
 var _ fs.FS = MapFS(nil)
 var _ fs.File = (*OpenMapFile)(nil)
 
+// adds write method to fs.File
+type FileWriter interface {
+	fs.File
+	Write(b []byte) (int, error)
+}
+
+// adds a Write method to fs.FS
+
 // Open opens the named file.
 func (fsys MapFS) Open(name string) (fs.File, error) {
 	if !fs.ValidPath(name) {
@@ -58,6 +88,9 @@ func (fsys MapFS) Open(name string) (fs.File, error) {
 	file := fsys[name]
 	if file != nil && file.Mode&fs.ModeDir == 0 {
 		// Ordinary file
+		t := reflect.TypeOf(file) // get the type of the object
+		println("in easyfs.Open f type=", t.String())
+		//fmt.Printf("opening file T=%T\n", file)
 		return &OpenMapFile{name, mapFileInfo{path.Base(name), file}, 0}, nil
 	}
 
@@ -151,12 +184,6 @@ func (fsys MapFS) Sub(dir string) (fs.FS, error) {
 	return fs.Sub(noSub{fsys}, dir)
 }
 
-// A mapFileInfo implements fs.FileInfo and fs.DirEntry for a given map file.
-type mapFileInfo struct {
-	name string
-	f    *MapFile
-}
-
 func (i *mapFileInfo) Name() string               { return i.name }
 func (i *mapFileInfo) Size() int64                { return int64(len(i.f.Data)) }
 func (i *mapFileInfo) Mode() fs.FileMode          { return i.f.Mode }
@@ -165,13 +192,6 @@ func (i *mapFileInfo) ModTime() time.Time         { return i.f.ModTime }
 func (i *mapFileInfo) IsDir() bool                { return i.f.Mode&fs.ModeDir != 0 }
 func (i *mapFileInfo) Sys() any                   { return i.f.Sys }
 func (i *mapFileInfo) Info() (fs.FileInfo, error) { return i, nil }
-
-// An OpenMapFile is a regular (non-directory) fs.File open for reading.
-type OpenMapFile struct {
-	path string
-	mapFileInfo
-	offset int64
-}
 
 func (f *OpenMapFile) Stat() (fs.FileInfo, error) { return &f.mapFileInfo, nil }
 
@@ -200,10 +220,9 @@ func (f *OpenMapFile) Read(b []byte) (int, error) {
 
 // func (f *MapFile) Write(b []byte) (int, error) {
 // func (f *OpenMapFile) Write(b []byte) (int, error) {
-func (f OpenMapFile) Write(b []byte) (int, error) {
+func (f *OpenMapFile) Write(b []byte) (int, error) {
 	//of :=f(*OpenMapFile)
 	//f.file.
-
 	//if file, ok := f.file.(*OpenMapFile); ok {
 	n := copy(f.f.Data, b)
 	if n < len(b) {
@@ -256,14 +275,6 @@ func (f *OpenMapFile) ReadAt(b []byte, offset int64) (int, error) {
 	return n, nil
 }
 
-// A mapDir is a directory fs.File (so also an fs.ReadDirFile) open for reading.
-type mapDir struct {
-	path string
-	mapFileInfo
-	entry  []mapFileInfo
-	offset int
-}
-
 func (d *mapDir) Stat() (fs.FileInfo, error) { return &d.mapFileInfo, nil }
 func (d *mapDir) Close() error               { return nil }
 func (d *mapDir) Read(b []byte) (int, error) {
@@ -301,23 +312,31 @@ func (fsys MapFS) Mkdir(name string, perm fs.FileMode) error {
 // Create a new file with the specified name and permission bits (before umask).
 // If there is an error, it will be of type *PathError.
 // func (fsys MapFS) Create(name string) (OpenMapFile, error) {
-func (fsys MapFS) Create(name string) (OpenMapFile, error) {
+func (fsys MapFS) Create(name string) (fs.File, error) {
 	//perm is not implimented
 	if name[0] == '/' {
 		name = name[1:] // FS filesystem in go cannot start with /
 	}
-	fsys[name] = &MapFile{
+	//fsys[name] = &MapFile{
+	//	Data:    []byte{},
+	//	Mode:    0666,
+	//	ModTime: time.Now(),
+	//}
+	//mfi := mapFileInfo{
+	//	name: name,
+	//	f:    fsys[name],
+	//}
+
+	//file := fsys[name]
+	file := &MapFile{
 		Data:    []byte{},
 		Mode:    0666,
 		ModTime: time.Now(),
 	}
-	mfi := mapFileInfo{
-		name: name,
-		f:    fsys[name],
-	}
-	//return OpenMapFile{path: name}, nil
+	// Ordinary file
+	return &OpenMapFile{name, mapFileInfo{path.Base(name), file}, 0}, nil
 
-	return OpenMapFile{path: name, mapFileInfo: mfi}, nil
+	//return &OpenMapFile{path: name, mapFileInfo: mfi}, nil
 	//return fsys.Open(name)
 }
 
