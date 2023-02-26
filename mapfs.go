@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/fs"
 	"path"
-	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -79,76 +78,6 @@ type FileWriter interface {
 }
 
 // adds a Write method to fs.FS
-
-// Open opens the named file.
-func (fsys MapFS) Open(name string) (fs.File, error) {
-	if !fs.ValidPath(name) {
-		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
-	}
-	file := fsys[name]
-	if file != nil && file.Mode&fs.ModeDir == 0 {
-		// Ordinary file
-		t := reflect.TypeOf(file) // get the type of the object
-		println("in easyfs.Open f type=", t.String())
-		//fmt.Printf("opening file T=%T\n", file)
-		return &OpenMapFile{name, mapFileInfo{path.Base(name), file}, 0}, nil
-	}
-
-	// Directory, possibly synthesized.
-	// Note that file can be nil here: the map need not contain explicit parent directories for all its files.
-	// But file can also be non-nil, in case the user wants to set metadata for the directory explicitly.
-	// Either way, we need to construct the list of children of this directory.
-	var list []mapFileInfo
-	var elem string
-	var need = make(map[string]bool)
-	if name == "." {
-		elem = "."
-		for fname, f := range fsys {
-			i := strings.Index(fname, "/")
-			if i < 0 {
-				if fname != "." {
-					list = append(list, mapFileInfo{fname, f})
-				}
-			} else {
-				need[fname[:i]] = true
-			}
-		}
-	} else {
-		elem = name[strings.LastIndex(name, "/")+1:]
-		prefix := name + "/"
-		for fname, f := range fsys {
-			if strings.HasPrefix(fname, prefix) {
-				felem := fname[len(prefix):]
-				i := strings.Index(felem, "/")
-				if i < 0 {
-					list = append(list, mapFileInfo{felem, f})
-				} else {
-					need[fname[len(prefix):len(prefix)+i]] = true
-				}
-			}
-		}
-		// If the directory name is not in the map,
-		// and there are no children of the name in the map,
-		// then the directory is treated as not existing.
-		if file == nil && list == nil && len(need) == 0 {
-			return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
-		}
-	}
-	for _, fi := range list {
-		delete(need, fi.name)
-	}
-	for name := range need {
-		list = append(list, mapFileInfo{name, &MapFile{Mode: fs.ModeDir}})
-	}
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].name < list[j].name
-	})
-
-	if file == nil {
-		file = &MapFile{Mode: fs.ModeDir}
-	}
-	return &mapDir{name, mapFileInfo{elem, file}, list, 0}, nil
-}
 
 // fsOnly is a wrapper that hides all but the fs.FS methods,
 // to avoid an infinite recursion when implementing special
@@ -309,51 +238,6 @@ func (fsys MapFS) Mkdir(name string, perm fs.FileMode) error {
 	return nil
 }
 
-// Create a new file with the specified name and permission bits (before umask).
-// If there is an error, it will be of type *PathError.
-// func (fsys MapFS) Create(name string) (OpenMapFile, error) {
-func (fsys MapFS) Create(name string) (fs.File, error) {
-	//perm is not implimented
-	if name[0] == '/' {
-		name = name[1:] // FS filesystem in go cannot start with /
-	}
-	//fsys[name] = &MapFile{
-	//	Data:    []byte{},
-	//	Mode:    0666,
-	//	ModTime: time.Now(),
-	//}
-	//mfi := mapFileInfo{
-	//	name: name,
-	//	f:    fsys[name],
-	//}
-
-	//file := fsys[name]
-	file := &MapFile{
-		Data:    []byte{},
-		Mode:    0666,
-		ModTime: time.Now(),
-	}
-	// Ordinary file
-	return &OpenMapFile{name, mapFileInfo{path.Base(name), file}, 0}, nil
-
-	//return &OpenMapFile{path: name, mapFileInfo: mfi}, nil
-	//return fsys.Open(name)
-}
-
-// WriteFile writes data to a file named by filename. perm is not used but cn be set to
-func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
-	//perm is not implimented
-	if name[0] == '/' {
-		name = name[1:] // FS filesystem in go cannot start with /
-	}
-	fsys[name] = &MapFile{
-		Data:    data,
-		Mode:    perm,
-		ModTime: time.Now(),
-	}
-	return nil
-}
-
 // Remove removes the named file or (empty) directory.
 // If there is an error, it will be of type *PathError.
 func (fsys MapFS) Remove(name string) error {
@@ -388,4 +272,114 @@ func (fsys MapFS) Copy(dst, src string) error {
 	}
 	fsys[dst] = srcFile
 	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+
+// WriteFile writes data to a file named by filename. perm is not used but cn be set to
+func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
+	//perm is not implimented
+	if name[0] == '/' {
+		name = name[1:] // FS filesystem in go cannot start with /
+	}
+	fsys[name] = &MapFile{
+		Data:    data,
+		Mode:    perm,
+		ModTime: time.Now(),
+	}
+	return nil
+}
+
+// Create a new file with the specified name and permission bits (before umask).
+// If there is an error, it will be of type *PathError.
+// func (fsys MapFS) Create(name string) (OpenMapFile, error) {
+func (fsys MapFS) Create(name string) (fs.File, error) {
+	if name[0] == '/' {
+		name = name[1:] // FS filesystem cannot start with /
+	}
+	//mfi := mapFileInfo{
+	//	name: name,
+	//	f:    fsys[name],
+	//}
+	fsys[name] = &MapFile{
+		Data:    []byte{},
+		Mode:    0666, //perm is not implimented
+		ModTime: time.Now(),
+	}
+	// Ordinary file
+	return &OpenMapFile{name, mapFileInfo{path.Base(name), fsys[name]}, 0}, nil
+	//return &OpenMapFile{path: name, mapFileInfo: mfi}, nil
+}
+
+// Open opens the named file.
+func (fsys MapFS) Open(name string) (fs.File, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+	}
+	file := fsys[name]
+	if file != nil && file.Mode&fs.ModeDir == 0 {
+		// Ordinary file
+		//t := reflect.TypeOf(file) // get the type of the object
+		//println("Open:  type=", t.String())
+		//fmt.Printf("Open:  file=%#v\n", file)
+		//println("----------------------------------")
+
+		//fmt.Printf("opening file T=%T\n", file)
+		return &OpenMapFile{name, mapFileInfo{path.Base(name), file}, 0}, nil
+	}
+
+	// Directory, possibly synthesized.
+	// Note that file can be nil here: the map need not contain explicit parent directories for all its files.
+	// But file can also be non-nil, in case the user wants to set metadata for the directory explicitly.
+	// Either way, we need to construct the list of children of this directory.
+	var list []mapFileInfo
+	var elem string
+	var need = make(map[string]bool)
+	if name == "." {
+		elem = "."
+		for fname, f := range fsys {
+			i := strings.Index(fname, "/")
+			if i < 0 {
+				if fname != "." {
+					list = append(list, mapFileInfo{fname, f})
+				}
+			} else {
+				need[fname[:i]] = true
+			}
+		}
+	} else {
+		elem = name[strings.LastIndex(name, "/")+1:]
+		prefix := name + "/"
+		for fname, f := range fsys {
+			if strings.HasPrefix(fname, prefix) {
+				felem := fname[len(prefix):]
+				i := strings.Index(felem, "/")
+				if i < 0 {
+					list = append(list, mapFileInfo{felem, f})
+				} else {
+					need[fname[len(prefix):len(prefix)+i]] = true
+				}
+			}
+		}
+		// If the directory name is not in the map,
+		// and there are no children of the name in the map,
+		// then the directory is treated as not existing.
+		if file == nil && list == nil && len(need) == 0 {
+			return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+		}
+	}
+	for _, fi := range list {
+		delete(need, fi.name)
+	}
+	for name := range need {
+		list = append(list, mapFileInfo{name, &MapFile{Mode: fs.ModeDir}})
+	}
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].name < list[j].name
+	})
+
+	if file == nil {
+		file = &MapFile{Mode: fs.ModeDir}
+	}
+	return &mapDir{name, mapFileInfo{elem, file}, list, 0}, nil
 }
