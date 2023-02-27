@@ -151,6 +151,8 @@ func (f *OpenMapFile) Read(b []byte) (int, error) {
 // func (f *MapFile) Write(b []byte) (int, error) {
 // func (f *OpenMapFile) Write(b []byte) (int, error) {
 func (f *OpenMapFile) Write(b []byte) (int, error) {
+	println("mapfs.go: OpenMapFile.Write", f.Name(), len(f.f.Data), "--------------------------------------------------------------")
+
 	//of :=f(*OpenMapFile)
 	//f.file.
 	//if file, ok := f.file.(*OpenMapFile); ok {
@@ -281,6 +283,8 @@ func (fsys MapFS) Copy(dst, src string) error {
 
 // WriteFile writes data to a file named by filename. perm is not used but cn be set to
 func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
+	println("mapfs.go: MapFS.WriteFile", name, len(data), "--------------------------------------------------------------")
+
 	//perm is not implimented
 	if name[0] == '/' {
 		name = name[1:] // FS filesystem in go cannot start with /
@@ -297,6 +301,8 @@ func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
 // If there is an error, it will be of type *PathError.
 // func (fsys MapFS) Create(name string) (OpenMapFile, error) {
 func (fsys MapFS) Create(name string) (fs.File, error) {
+	println("mapfs.go: MapFS.Create", name, "--------------------------------------------------------------")
+
 	if name[0] == '/' {
 		name = name[1:] // FS filesystem cannot start with /
 	}
@@ -316,6 +322,8 @@ func (fsys MapFS) Create(name string) (fs.File, error) {
 
 // Open opens the named file.
 func (fsys MapFS) Open(name string) (fs.File, error) {
+	println("mapfs.go: MapFS.Open", name, "--------------------------------------------------------------")
+
 	if !fs.ValidPath(name) {
 		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
 	}
