@@ -127,6 +127,7 @@ func (f *OpenMapFile) Stat() (fs.FileInfo, error) { return &f.mapFileInfo, nil }
 func (f *OpenMapFile) Close() error { return nil }
 
 func (f *OpenMapFile) Read(b []byte) (int, error) {
+	println("mapfs.go: OpenMapFile.Read", f.Name(), len(f.f.Data), "--------------------------------------------------------------")
 	if f.offset >= int64(len(f.f.Data)) {
 		return 0, io.EOF
 	}
@@ -207,6 +208,8 @@ func (f *OpenMapFile) ReadAt(b []byte, offset int64) (int, error) {
 func (d *mapDir) Stat() (fs.FileInfo, error) { return &d.mapFileInfo, nil }
 func (d *mapDir) Close() error               { return nil }
 func (d *mapDir) Read(b []byte) (int, error) {
+	println("mapfs.go: mapDir.Read", d.Name(), len(d.f.Data), "--------------------------------------------------------------")
+
 	return 0, &fs.PathError{Op: "read", Path: d.path, Err: fs.ErrInvalid}
 }
 
