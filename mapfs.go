@@ -8,10 +8,13 @@ import (
 	"io"
 	"io/fs"
 	"path"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
 )
+
+// Do not import fmt in this package, this is meant to be a low-level package.
 
 // To use: first create an empty in-memory file system
 // fs := easyfs.MapFS{}
@@ -88,6 +91,7 @@ type FileWriter interface {
 type fsOnly struct{ fs.FS }
 
 func (fsys MapFS) ReadFile(name string) ([]byte, error) {
+	//println("mapfs.go: MapFS.ReadFile", name, "--------------------------------------------------------------")
 	return fs.ReadFile(fsOnly{fsys}, name)
 }
 
@@ -216,6 +220,7 @@ func (d *mapDir) Read(b []byte) (int, error) {
 }
 
 func (d *mapDir) ReadDir(count int) ([]fs.DirEntry, error) {
+	//println("mapfs.go: mapDir.ReadDir", d.Name(), len(d.f.Data), "--------------------------------------------------------------")
 	n := len(d.entry) - d.offset
 	if n == 0 && count > 0 {
 		return nil, io.EOF
@@ -330,12 +335,9 @@ func (fsys MapFS) Open(name string) (fs.File, error) {
 	file := fsys[name]
 	if file != nil && file.Mode&fs.ModeDir == 0 {
 		// Ordinary file
-		//t := reflect.TypeOf(file) // get the type of the object
-		//println("Open:  type=", t.String())
-		//fmt.Printf("Open:  file=%#v\n", file)
-		//println("----------------------------------")
-
-		//fmt.Printf("opening file T=%T\n", file)
+		t := reflect.TypeOf(file) // get the type of the object
+		println("Open:  type=", t.String())
+		println("----------------------------------")
 		return &OpenMapFile{name, mapFileInfo{path.Base(name), file}, 0}, nil
 	}
 
