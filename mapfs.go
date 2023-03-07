@@ -294,7 +294,7 @@ func (fsys MapFS) Copy(dst, src string) error {
 
 // WriteFile writes data to a file named by filename. perm is not used but cn be set to
 func (fsys MapFS) WriteFile(name string, data []byte, perm fs.FileMode) error {
-	println("mapfs.go: MapFS.WriteFile", name, len(data), "--------------------------------------------------------------")
+	//println("mapfs.go: MapFS.WriteFile", name, len(data), "--------------------------------------------------------------")
 
 	//perm is not implimented
 	if name[0] == '/' {
