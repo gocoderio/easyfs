@@ -96,6 +96,11 @@ func (fsys MapFS) ReadFile(name string) ([]byte, error) {
 }
 
 func (fsys MapFS) Stat(name string) (fs.FileInfo, error) {
+	//println("mapfs.go: MapFS.Stat", name, "--------------------------------------------------------------")
+	//t := reflect.TypeOf(fsys) // get the type of the object
+	//println("mapfs.go: MapFS.Stat Open:  type=", t.String())
+	//println("----------------------------------")
+
 	return fs.Stat(fsOnly{fsys}, name)
 }
 
@@ -131,7 +136,8 @@ func (f *OpenMapFile) Stat() (fs.FileInfo, error) { return &f.mapFileInfo, nil }
 func (f *OpenMapFile) Close() error { return nil }
 
 func (f *OpenMapFile) Read(b []byte) (int, error) {
-	println("mapfs.go: OpenMapFile.Read", f.Name(), len(f.f.Data), "--------------------------------------------------------------")
+	//println("mapfs.go: OpenMapFile.Read", f.Name(), len(f.f.Data), "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+	//println("f.f.Data len=", len(f.f.Data))
 	if f.offset >= int64(len(f.f.Data)) {
 		return 0, io.EOF
 	}
@@ -214,8 +220,8 @@ func (f *OpenMapFile) ReadAt(b []byte, offset int64) (int, error) {
 func (d *mapDir) Stat() (fs.FileInfo, error) { return &d.mapFileInfo, nil }
 func (d *mapDir) Close() error               { return nil }
 func (d *mapDir) Read(b []byte) (int, error) {
-	println("mapfs.go: mapDir.Read", d.Name(), len(d.f.Data), "--------------------------------------------------------------")
-
+	//println("mapfs.go: mapDir.Read", d.Name(), len(d.f.Data), "##########################################################")
+	//println("d.f.Data len=", len(d.f.Data))
 	return 0, &fs.PathError{Op: "read", Path: d.path, Err: fs.ErrInvalid}
 }
 
@@ -327,17 +333,22 @@ func (fsys MapFS) Create(name string) (fs.File, error) {
 
 // Open opens the named file.
 func (fsys MapFS) Open(name string) (fs.File, error) {
-	println("mapfs.go: MapFS.Open", name, "--------------------------------------------------------------")
+	//println("mapfs.go: MapFS.Open", name, "[------------------------------------------------------------]")
 
 	if !fs.ValidPath(name) {
 		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
 	}
-	file := fsys[name]
+	file, ok := fsys[name]
+	//if ok {
+	//	println("Open:  file found")
+	//} else {
+	//	println("Open:  file NOT found")
+	//}
 	if file != nil && file.Mode&fs.ModeDir == 0 {
 		// Ordinary file
 		t := reflect.TypeOf(file) // get the type of the object
 		println("Open:  type=", t.String())
-		println("----------------------------------")
+		println("#----------------------------------#")
 		return &OpenMapFile{name, mapFileInfo{path.Base(name), file}, 0}, nil
 	}
 
@@ -349,6 +360,7 @@ func (fsys MapFS) Open(name string) (fs.File, error) {
 	var elem string
 	var need = make(map[string]bool)
 	if name == "." {
+		//println("Open:  name == . (dot)")
 		elem = "."
 		for fname, f := range fsys {
 			i := strings.Index(fname, "/")
@@ -361,9 +373,14 @@ func (fsys MapFS) Open(name string) (fs.File, error) {
 			}
 		}
 	} else {
+		//println("Open:  name != . (dot)")
 		elem = name[strings.LastIndex(name, "/")+1:]
 		prefix := name + "/"
 		for fname, f := range fsys {
+			// print if the file name starts with the prefix
+			//if strings.HasPrefix(fname, prefix) {
+			//	println("Open:  fname=", fname, "  prefix=", prefix)
+			//}
 			if strings.HasPrefix(fname, prefix) {
 				felem := fname[len(prefix):]
 				i := strings.Index(felem, "/")
@@ -374,25 +391,39 @@ func (fsys MapFS) Open(name string) (fs.File, error) {
 				}
 			}
 		}
+		//println("Open:  elem=", elem, "  len(list)=", len(list), "  len(need)=", len(need))
 		// If the directory name is not in the map,
 		// and there are no children of the name in the map,
 		// then the directory is treated as not existing.
 		if file == nil && list == nil && len(need) == 0 {
+			//println("DIRECTORY NOT FOUND (1)", name)
 			return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+		} else {
+			//println("DIRECTORY FOUND (1)", name)
 		}
 	}
 	for _, fi := range list {
+		//println("Open:  list:  fi.name=", fi.name, "  fi.f=", fi.f)
 		delete(need, fi.name)
 	}
 	for name := range need {
+		//println("Open:  need:  name=", name)
 		list = append(list, mapFileInfo{name, &MapFile{Mode: fs.ModeDir}})
 	}
 	sort.Slice(list, func(i, j int) bool {
+		//println("Open:  sort:  i=", i, "  j=", j, "  list[i].name=", list[i].name, "  list[j].name=", list[j].name)
 		return list[i].name < list[j].name
 	})
-
+	//println("Open:  len(list)=", len(list))
 	if file == nil {
+		//println("file==nil")
 		file = &MapFile{Mode: fs.ModeDir}
 	}
-	return &mapDir{name, mapFileInfo{elem, file}, list, 0}, nil
+	//println("TRUTH Open:  name", name)
+	ff := &mapDir{name, mapFileInfo{elem, file}, list, 0}
+	ff.name = name             //must set this or else it will be filename only without the path
+	ff.mapFileInfo.name = name //same here
+	//println("TRUTH Open:  ff.name", ff.name)
+	//, "ff.mapFileInfo.name=", ff.mapFileInfo.name)
+	return ff, nil
 }
