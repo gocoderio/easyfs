@@ -338,7 +338,7 @@ func (fsys MapFS) Open(name string) (fs.File, error) {
 	if !fs.ValidPath(name) {
 		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
 	}
-	file, ok := fsys[name]
+	file, _ := fsys[name]
 	//if ok {
 	//	println("Open:  file found")
 	//} else {
