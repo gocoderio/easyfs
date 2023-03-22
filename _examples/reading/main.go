@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/gocoderpro/easyfs"
+	"github.com/gocoderio/easyfs"
 )
 
 func main() {
